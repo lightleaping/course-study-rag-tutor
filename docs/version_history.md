@@ -87,3 +87,24 @@ Question	v2 Result	v2.1 Result
 답변 생성은 아직 LLM 기반이 아니라 검색 근거를 정리하는 방식임
 
 ---
+
+## Chunking Improvement
+
+### 문제
+
+초기 chunking 방식은 빈 줄 기준으로 문서를 나누었습니다.  
+이로 인해 Markdown 제목과 본문이 서로 다른 chunk로 분리되는 문제가 있었습니다.
+
+예를 들어 `## 기본 키` 제목이 단독 chunk로 생성되어, 검색 결과에 `기본 키`라는 제목만 표시되는 경우가 있었습니다.
+
+### 개선
+
+chunking 방식을 Markdown heading 기준으로 변경했습니다.  
+현재는 heading과 그 아래 본문을 하나의 chunk로 묶습니다.
+
+### 개선 효과
+
+- 제목만 있는 chunk 감소
+- 검색 근거의 정보량 증가
+- 답변 생성에 사용할 수 있는 근거 품질 개선
+- Streamlit UI에서 근거 카드가 더 자연스럽게 표시됨

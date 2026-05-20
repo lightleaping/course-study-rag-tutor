@@ -61,3 +61,32 @@
 
 v2.1에서는 embedding similarity, keyword overlap, domain boost score를 함께 반영했습니다.  
 그 결과 “데이터를 구분하는 식별자”처럼 직접적으로 “기본 키”라는 단어가 들어가지 않은 질문에서도 기본 키 관련 chunk를 상위에 노출할 수 있었습니다.
+
+# Sample Result - Hybrid Embedding Search v2.1
+
+## 질문
+
+데이터를 구분하는 식별자는 무엇인가요?
+
+## 검색된 근거
+
+1. database.md / database_md_chunk_003
+   final score: 0.782
+   embedding score: 0.2426
+   keyword score: 0.0
+   boost score: 0.6
+
+```text
+## 기본 키
+기본 키는 테이블에서 각 행을 고유하게 식별하기 위한 값입니다. 기본 키는 중복될 수 없으며, 일반적으로 ID와 같은 값을 사용합니다.
+```
+
+## 답변
+
+기본 키는 테이블에서 각 행을 고유하게 식별하기 위한 값입니다. 기본 키는 중복될 수 없으며, 일반적으로 ID와 같은 값을 사용합니다.
+
+## 개선 내용
+
+초기 chunking 방식에서는 ## 기본 키 제목과 본문이 서로 다른 chunk로 분리되었습니다.
+현재는 Markdown heading 기준으로 제목과 본문을 하나의 chunk로 묶어, 검색 근거가 더 자연스럽게 표시됩니다.
+
