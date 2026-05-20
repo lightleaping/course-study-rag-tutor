@@ -63,7 +63,7 @@ def keyword_overlap_score(query: str, chunk_text: str) -> float:
 def domain_boost_score(query: str, chunk_text: str) -> float:
     """
     간단한 도메인 규칙 기반 보정 점수.
-    질문 의도와 명확히 연결되는 핵심 개념이 chunk에 있으면 가산한다.
+    짧은 개념 질문에서도 핵심 개념 chunk가 검색되도록 보정한다.
     """
     score = 0.0
 
@@ -75,32 +75,41 @@ def domain_boost_score(query: str, chunk_text: str) -> float:
     is_supervised_chunk = "지도학습은" in chunk_text or "## 지도학습" in chunk_text
     is_unsupervised_chunk = "비지도학습은" in chunk_text or "## 비지도학습" in chunk_text
 
-    if "정답" in query and is_supervised_chunk:
-        score += 0.3
-
-    if "정답" in query and is_unsupervised_chunk:
-        score -= 0.2
-
-    if "식별자" in query and is_primary_key_chunk:
-        score += 0.35
-
-    if "구분" in query and is_primary_key_chunk:
-        score += 0.25
-
-    if "참조" in query and is_foreign_key_chunk:
-        score += 0.25
-
+    # 직접 개념 질문 보정
     if "외래 키" in query and is_foreign_key_chunk:
-        score += 0.3
+        score += 0.7
 
     if "기본 키" in query and is_primary_key_chunk:
-        score += 0.3
+        score += 0.7
 
+    if "지도학습" in query and is_supervised_chunk:
+        score += 0.7
+
+    if "비지도학습" in query and is_unsupervised_chunk:
+        score += 0.7
+
+    # 의미 기반 우회 질문 보정
+    if "식별자" in query and is_primary_key_chunk:
+        score += 0.45
+
+    if "구분" in query and is_primary_key_chunk:
+        score += 0.35
+
+    if "참조" in query and is_foreign_key_chunk:
+        score += 0.35
+
+    if "정답" in query and is_supervised_chunk:
+        score += 0.4
+
+    if "정답" in query and is_unsupervised_chunk:
+        score -= 0.25
+
+    # 차이 질문 보정
     if "차이" in query and is_primary_key_chunk:
-        score += 0.15
+        score += 0.25
 
     if "차이" in query and is_foreign_key_chunk:
-        score += 0.15
+        score += 0.25
 
     return score
 
@@ -139,19 +148,18 @@ def retrieve_top_k_by_embedding(
     embedded_chunks: list[dict],
     model,
     k: int = 3,
-    min_score: float = 0.6
+    min_score: float = 0.45
 ) -> list[dict]:
     """
     embedding similarity + keyword overlap + domain boost를 함께 사용하여 Top-K chunk를 반환한다.
-    min_score보다 낮은 chunk는 제외한다.
+    min_score보다 낮은 chunk는 제외하되, 결과가 없으면 fallback으로 상위 chunk를 반환한다.
     """
     query_embedding = model.encode(
         query,
         convert_to_numpy=True
     )
 
-    scored_chunks = []
-    # 점수가 매겨진 chunk들을 담을 리스트를 초기화
+    all_scored_chunks = []
 
     for chunk in embedded_chunks:
         embedding_score = cosine_similarity(query_embedding, chunk["embedding"])
@@ -174,9 +182,16 @@ def retrieve_top_k_by_embedding(
             "boost_score": round(boost_score, 4)
         }
 
-        if final_score >= min_score:
-            scored_chunks.append(scored_chunk)
+        all_scored_chunks.append(scored_chunk)
 
-    scored_chunks.sort(key=lambda x: x["score"], reverse=True)
+    all_scored_chunks.sort(key=lambda x: x["score"], reverse=True)
 
-    return scored_chunks[:k]
+    filtered_chunks = [
+        chunk for chunk in all_scored_chunks
+        if chunk["score"] >= min_score
+    ]
+
+    if filtered_chunks:
+        return filtered_chunks[:k]
+
+    return all_scored_chunks[:1]
