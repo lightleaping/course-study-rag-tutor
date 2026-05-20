@@ -70,23 +70,37 @@ def domain_boost_score(query: str, chunk_text: str) -> float:
     query = query.lower()
     chunk_text = chunk_text.lower()
 
-    if "정답" in query and "지도학습" in chunk_text:
+    is_primary_key_chunk = "기본 키는" in chunk_text or "## 기본 키" in chunk_text
+    is_foreign_key_chunk = "외래 키는" in chunk_text or "## 외래 키" in chunk_text
+    is_supervised_chunk = "지도학습은" in chunk_text or "## 지도학습" in chunk_text
+    is_unsupervised_chunk = "비지도학습은" in chunk_text or "## 비지도학습" in chunk_text
+
+    if "정답" in query and is_supervised_chunk:
+        score += 0.3
+
+    if "정답" in query and is_unsupervised_chunk:
+        score -= 0.2
+
+    if "식별자" in query and is_primary_key_chunk:
+        score += 0.35
+
+    if "구분" in query and is_primary_key_chunk:
         score += 0.25
 
-    if "정답" in query and "비지도학습" in chunk_text:
-        score -= 0.15
-
-    if "식별자" in query and "기본 키" in chunk_text:
+    if "참조" in query and is_foreign_key_chunk:
         score += 0.25
 
-    if "구분" in query and "기본 키" in chunk_text:
+    if "외래 키" in query and is_foreign_key_chunk:
+        score += 0.3
+
+    if "기본 키" in query and is_primary_key_chunk:
+        score += 0.3
+
+    if "차이" in query and is_primary_key_chunk:
         score += 0.15
 
-    if "외래 키" in query and "외래 키" in chunk_text:
-        score += 0.2
-
-    if "기본 키" in query and "기본 키" in chunk_text:
-        score += 0.2
+    if "차이" in query and is_foreign_key_chunk:
+        score += 0.15
 
     return score
 
@@ -124,10 +138,12 @@ def retrieve_top_k_by_embedding(
     query: str,
     embedded_chunks: list[dict],
     model,
-    k: int = 3
+    k: int = 3,
+    min_score: float = 0.6
 ) -> list[dict]:
     """
     embedding similarity + keyword overlap + domain boost를 함께 사용하여 Top-K chunk를 반환한다.
+    min_score보다 낮은 chunk는 제외한다.
     """
     query_embedding = model.encode(
         query,
@@ -136,7 +152,7 @@ def retrieve_top_k_by_embedding(
 
     scored_chunks = []
     # 점수가 매겨진 chunk들을 담을 리스트를 초기화
-    
+
     for chunk in embedded_chunks:
         embedding_score = cosine_similarity(query_embedding, chunk["embedding"])
         keyword_score = keyword_overlap_score(query, chunk["text"])
@@ -158,7 +174,8 @@ def retrieve_top_k_by_embedding(
             "boost_score": round(boost_score, 4)
         }
 
-        scored_chunks.append(scored_chunk)
+        if final_score >= min_score:
+            scored_chunks.append(scored_chunk)
 
     scored_chunks.sort(key=lambda x: x["score"], reverse=True)
 
