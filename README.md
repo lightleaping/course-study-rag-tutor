@@ -131,3 +131,11 @@ v1은 RAG의 기본 구조를 직접 구현하는 데 초점을 두었습니다.
 ## Next Step
 
 다음 버전에서는 sentence-transformers 기반 임베딩 검색을 추가하여, 키워드 일치가 아니라 문장 의미 유사도 기반으로 관련 chunk를 검색하도록 개선할 예정입니다.
+
+## v2.1 Hybrid Retrieval
+
+v2에서는 sentence-transformers 기반 임베딩 검색을 적용했습니다. 그러나 일부 짧거나 추상적인 질문에서는 의도와 다른 chunk가 상위에 노출되는 문제가 있었습니다.
+
+이를 개선하기 위해 v2.1에서는 embedding similarity, keyword overlap, domain-specific boost score를 함께 반영하는 hybrid retrieval 방식을 적용했습니다.
+
+이 개선을 통해 “데이터를 구분하는 식별자는 무엇인가요?”와 같은 질문에서 기존에는 군집화 관련 chunk가 상위에 노출되던 문제를 줄이고, 기본 키 관련 chunk가 상위에 오도록 개선했습니다.
