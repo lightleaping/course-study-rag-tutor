@@ -1,6 +1,6 @@
 from src.loader import load_documents
 from src.chunker import create_chunks
-from src.retriever import retrieve_top_k
+from src.keyword_retriever import retrieve_top_k
 from src.answer_builder import build_answer
 
 
