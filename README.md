@@ -60,3 +60,31 @@ course-study-rag-tutor/
 │  └─ answer_builder.py
 └─ outputs/
    └─ sample_result.md
+```
+6. 실행 방법
+
+pip install -r requirements.txt
+python app.py
+
+7. 실행 예시
+
+질문:
+머신러닝에서 지도학습은 무엇인가요?
+
+검색된 근거:
+1. machine_learning.md / chunk_001
+2. machine_learning.md / chunk_002
+3. python_basic.md / chunk_001
+
+답변:
+지도학습은 입력 데이터와 정답 레이블을 함께 사용하여 모델을 학습시키는 머신러닝 방식입니다. 대표적인 예로 분류와 회귀 문제가 있습니다.
+
+8. 향후 개선 계획
+sentence-transformers 기반 임베딩 검색 추가
+FAISS 또는 Chroma 벡터 DB 적용
+Streamlit UI 구현
+과목별 필터 기능 추가
+복습 문제 자동 생성 기능 추가
+검색 점수 시각화
+
+---
