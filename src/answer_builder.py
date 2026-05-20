@@ -16,9 +16,9 @@ def is_simple_concept_question(query: str) -> bool:
     comparison_patterns = [
         "차이",
         "비교",
-        "와",
-        "과",
-        "vs",
+        " vs ",
+        "와 ",
+        "과 ",
     ]
 
     has_simple_pattern = any(pattern in query for pattern in simple_patterns)
@@ -27,13 +27,13 @@ def is_simple_concept_question(query: str) -> bool:
     return has_simple_pattern and not has_comparison_pattern
 
 
-def clean_chunk_text(text: str, remove_heading: bool = False) -> str:
+def split_heading_and_body(text: str) -> tuple[str | None, str]:
     """
-    chunk text에서 Markdown heading 기호를 제거하고 답변용 텍스트로 정리한다.
-    remove_heading=True이면 heading 줄 자체를 답변에서 제외한다.
+    chunk에서 Markdown heading과 본문을 분리한다.
     """
     lines = text.splitlines()
-    cleaned_lines = []
+    heading = None
+    body_lines = []
 
     for line in lines:
         line = line.strip()
@@ -41,14 +41,35 @@ def clean_chunk_text(text: str, remove_heading: bool = False) -> str:
         if not line:
             continue
 
-        if line.startswith("#"):
-            if remove_heading:
-                continue
-            line = line.replace("#", "").strip()
+        if line.startswith("#") and heading is None:
+            heading = line.replace("#", "").strip()
+            continue
 
-        cleaned_lines.append(line)
+        body_lines.append(line)
 
-    return " ".join(cleaned_lines)
+    body = " ".join(body_lines).strip()
+    return heading, body
+
+
+def format_answer_section(chunk: dict, show_heading: bool = True) -> str:
+    """
+    chunk 하나를 답변용 단락으로 변환한다.
+    비교 질문에서는 heading을 Markdown 소제목으로 분리해서 보여준다.
+    """
+    heading, body = split_heading_and_body(chunk["text"])
+
+    if show_heading and heading:
+        if body:
+            return f"### {heading}\n\n{body}"
+        return f"### {heading}"
+
+    if body:
+        return body
+
+    if heading:
+        return heading
+
+    return chunk["text"].strip()
 
 
 def filter_chunks_for_answer(query: str, retrieved_chunks: list[dict]) -> list[dict]:
@@ -69,7 +90,8 @@ def filter_chunks_for_answer(query: str, retrieved_chunks: list[dict]) -> list[d
 def build_answer(query: str, retrieved_chunks: list[dict]) -> str:
     """
     검색된 chunk를 바탕으로 근거 기반 답변을 생성한다.
-    v1/v2.1 모두에서 사용할 수 있도록 규칙 기반으로 답변한다.
+    짧은 개념 질문은 하나의 chunk만 사용하고,
+    비교 질문은 chunk별로 소제목과 단락을 나누어 답변한다.
     """
     if not retrieved_chunks:
         return (
@@ -78,33 +100,40 @@ def build_answer(query: str, retrieved_chunks: list[dict]) -> str:
         )
 
     answer_chunks = filter_chunks_for_answer(query, retrieved_chunks)
+    simple_question = is_simple_concept_question(query)
 
-    evidence_texts = []
-
-    remove_heading = is_simple_concept_question(query)
+    answer_sections = []
 
     for chunk in answer_chunks:
-        evidence_texts.append(
-            clean_chunk_text(
-                chunk["text"],
-                remove_heading=remove_heading
-            )
+        section = format_answer_section(
+            chunk,
+            show_heading=not simple_question
         )
 
-    answer_body = " ".join(evidence_texts)
+        if section:
+            answer_sections.append(section)
+
+    answer_body = "\n\n".join(answer_sections)
+
+    evidence_lines = []
+
+    for index, chunk in enumerate(answer_chunks, start=1):
+        evidence_lines.append(
+            f"{index}. {chunk['file_name']} / "
+            f"{chunk['chunk_id']} / score: {chunk['score']}"
+        )
+
+    evidence_text = "\n".join(evidence_lines)
 
     answer = f"""질문: {query}
 
 답변:
+
 {answer_body}
 
 사용한 근거:
-"""
 
-    for index, chunk in enumerate(answer_chunks, start=1):
-        answer += (
-            f"\n{index}. {chunk['file_name']} / "
-            f"{chunk['chunk_id']} / score: {chunk['score']}"
-        )
+{evidence_text}
+"""
 
     return answer

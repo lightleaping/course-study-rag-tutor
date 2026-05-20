@@ -168,7 +168,7 @@ def main():
         st.divider()
 
         st.subheader("답변")
-        st.write(answer)
+        st.markdown(answer)
         # 답변을 화면에 표시
 
         st.subheader("검색된 근거")
