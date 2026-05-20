@@ -2,6 +2,8 @@
 
 > 수업자료와 개인 학습 노트를 기반으로 질문과 관련된 근거 chunk를 검색하고, 출처와 함께 답변을 제공하는 RAG 기반 학습 도우미입니다.
 
+이 프로젝트는 키워드 검색, 임베딩 검색, 하이브리드 검색을 단계적으로 구현하며 검색 품질을 개선한 과정을 보여주는 포트폴리오용 RAG 프로젝트입니다.
+
 ---
 
 ## 1. Project Overview
@@ -64,6 +66,23 @@ Generate Grounded Answer
 Show Source File, Chunk ID, Score
 ```
 
+### Architecture Diagram
+
+```mermaid
+flowchart TD
+    A[User Question] --> B[Load Course Documents]
+    B --> C[Split Documents into Chunks]
+    C --> D{Retrieval Method}
+    D --> E[v1 Keyword Retrieval]
+    D --> F[v2 Embedding Retrieval]
+    D --> G[v2.1 Hybrid Retrieval]
+    E --> H[Top-K Evidence Chunks]
+    F --> H
+    G --> H
+    H --> I[Grounded Answer Builder]
+    I --> J[Answer with File Name, Chunk ID, Score]
+```
+
 ---
 
 ## 5. Project Structure
@@ -102,6 +121,18 @@ course-study-rag-tutor/
 | v1 | Keyword-based Retrieval | 질문과 chunk의 단어 겹침을 기준으로 검색 | 표현이 다르면 검색 성능 저하 |
 | v2 | Embedding-based Retrieval | sentence-transformers로 문장 의미 기반 검색 | 짧거나 모호한 질문에서 부정확한 chunk 검색 가능 |
 | v2.1 | Hybrid Retrieval | embedding, keyword, domain boost 점수를 결합 | 현재는 샘플 도메인 규칙 기반 |
+
+
+### Development Flow
+
+```mermaid
+flowchart LR
+    A[v1 Keyword Retrieval] --> B[문제 발견: 표현이 다르면 검색 성능 저하]
+    B --> C[v2 Embedding Retrieval]
+    C --> D[문제 발견: 모호한 질문에서 부정확한 chunk 검색]
+    D --> E[v2.1 Hybrid Retrieval]
+    E --> F[검색 결과 개선 및 근거 추적 강화]
+```
 
 ---
 
