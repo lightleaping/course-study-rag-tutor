@@ -64,6 +64,7 @@ course-study-rag-tutor/
 6. 실행 방법
 
 pip install -r requirements.txt
+
 python app.py
 
 7. 실행 예시
